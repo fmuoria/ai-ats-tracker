@@ -1,6 +1,6 @@
 import os
 import json
-from openai import OpenAI
+import google.generativeai as genai
 from typing import Dict, Optional
 
 
@@ -8,11 +8,11 @@ class AIAnalyzer:
     """Service for AI-powered CV and cover letter analysis"""
     
     def __init__(self):
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
-        self.client = OpenAI(api_key=api_key)
-        self.model = "gpt-3.5-turbo"
+            raise ValueError("GEMINI_API_KEY environment variable is not set")
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
     
     def analyze_cv(self, cv_text: str) -> Dict:
         """
@@ -48,17 +48,11 @@ Provide your response in the following JSON format:
 }}"""
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert HR recruiter and CV analyst. Provide objective, fair, and constructive feedback."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                response_format={"type": "json_object"}
-            )
+            system_prompt = "You are an expert HR recruiter and CV analyst. Provide objective, fair, and constructive feedback."
+            full_prompt = f"{system_prompt}\n\n{prompt}\n\nProvide your response as a valid JSON object."
             
-            result = json.loads(response.choices[0].message.content)
+            response = self.model.generate_content(full_prompt)
+            result = json.loads(response.text)
             return result
         except Exception as e:
             print(f"Error analyzing CV: {str(e)}")
@@ -110,17 +104,11 @@ Provide your response in the following JSON format:
 }}"""
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "You are an expert HR recruiter analyzing cover letters. Provide objective and constructive feedback."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                response_format={"type": "json_object"}
-            )
+            system_prompt = "You are an expert HR recruiter analyzing cover letters. Provide objective and constructive feedback."
+            full_prompt = f"{system_prompt}\n\n{prompt}\n\nProvide your response as a valid JSON object."
             
-            result = json.loads(response.choices[0].message.content)
+            response = self.model.generate_content(full_prompt)
+            result = json.loads(response.text)
             return result
         except Exception as e:
             print(f"Error analyzing cover letter: {str(e)}")
