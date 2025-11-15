@@ -52,6 +52,10 @@ Provide your response in the following JSON format:
             full_prompt = f"{system_prompt}\n\n{prompt}\n\nProvide your response as a valid JSON object."
             
             response = self.model.generate_content(full_prompt)
+            
+            if not response.text:
+                raise ValueError("Gemini API returned empty response")
+            
             result = json.loads(response.text)
             return result
         except Exception as e:
@@ -108,6 +112,10 @@ Provide your response in the following JSON format:
             full_prompt = f"{system_prompt}\n\n{prompt}\n\nProvide your response as a valid JSON object."
             
             response = self.model.generate_content(full_prompt)
+            
+            if not response.text:
+                raise ValueError("Gemini API returned empty response")
+            
             result = json.loads(response.text)
             return result
         except Exception as e:
