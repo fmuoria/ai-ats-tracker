@@ -1,0 +1,59 @@
+JOHN SMITH
+Email: john.smith@example.com | Phone: +1-555-123-4567
+LinkedIn: https://linkedin.com/in/johnsmith
+Portfolio: www.johnsmith.dev
+
+PROFESSIONAL SUMMARY
+Experienced Software Engineer with 5+ years of expertise in full-stack development, cloud architecture, and team leadership. Proven track record of delivering scalable solutions and mentoring junior developers. Passionate about creating efficient, user-centric applications.
+
+PROFESSIONAL EXPERIENCE
+
+Senior Software Engineer | Tech Innovations Inc.
+San Francisco, CA | January 2021 - Present
+• Led development of microservices architecture serving 1M+ daily active users
+• Improved system performance by 45% through optimization and caching strategies
+• Mentored team of 5 junior developers, conducting code reviews and technical training
+• Implemented CI/CD pipelines reducing deployment time by 60%
+• Technologies: Python, FastAPI, React, AWS, Docker, Kubernetes
+
+Software Engineer | Digital Solutions Corp.
+New York, NY | June 2019 - December 2020
+• Developed RESTful APIs handling 100K+ requests per day
+• Built responsive web applications using React and TypeScript
+• Collaborated with cross-functional teams to deliver features on time
+• Reduced bug rate by 35% through comprehensive testing practices
+• Technologies: Node.js, Express, React, MongoDB, Jest
+
+Junior Software Developer | StartUp Ventures
+Boston, MA | July 2017 - May 2019
+• Contributed to development of e-commerce platform with $2M annual revenue
+• Implemented user authentication and authorization systems
+• Participated in agile development process with bi-weekly sprints
+• Technologies: JavaScript, React, PostgreSQL, Git
+
+EDUCATION
+
+Bachelor of Science in Computer Science
+Massachusetts Institute of Technology | 2013 - 2017
+GPA: 3.8/4.0 | Dean's List
+
+TECHNICAL SKILLS
+
+Languages: Python, JavaScript, TypeScript, Java, SQL
+Frameworks: FastAPI, React, Node.js, Express, Django, Next.js
+Cloud & DevOps: AWS, Docker, Kubernetes, CI/CD, Jenkins, GitHub Actions
+Databases: PostgreSQL, MongoDB, Redis, MySQL
+Tools: Git, JIRA, Postman, VS Code, Linux
+
+CERTIFICATIONS
+• AWS Certified Solutions Architect - Associate (2022)
+• Professional Scrum Master I (PSM I) (2021)
+
+ACHIEVEMENTS
+• Led project that increased user engagement by 60%
+• Published 3 technical articles on Medium with 50K+ views
+• Contributed to 5 open-source projects on GitHub
+• Speaker at DevConf 2023 on "Microservices Best Practices"
+
+LANGUAGES
+English (Native), Spanish (Intermediate)

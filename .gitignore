@@ -49,7 +49,11 @@ uploads/
 *.pdf
 *.docx
 *.doc
-*.txt
+
+# Allow sample data
+!sample_data/*.txt
+!sample_data/*.pdf
+!sample_data/*.docx
 
 # Node
 node_modules/
