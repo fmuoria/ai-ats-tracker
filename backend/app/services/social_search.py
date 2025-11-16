@@ -194,22 +194,34 @@ class SocialSearchService:
     
     def _detect_platform(self, url: str) -> Optional[str]:
         """Detect social media platform from URL"""
-        url_lower = url.lower()
+        from urllib.parse import urlparse
         
-        if 'linkedin.com' in url_lower:
-            return 'linkedin'
-        elif 'github.com' in url_lower:
-            return 'github'
-        elif 'twitter.com' in url_lower or 'x.com' in url_lower:
-            return 'twitter'
-        elif 'stackoverflow.com' in url_lower:
-            return 'stackoverflow'
-        elif 'medium.com' in url_lower:
-            return 'medium'
-        elif 'facebook.com' in url_lower:
-            return 'facebook'
-        elif 'instagram.com' in url_lower:
-            return 'instagram'
+        try:
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
+            
+            # Remove port if present
+            if ':' in domain:
+                domain = domain.split(':')[0]
+            
+            # Check domain precisely - must be exact match or subdomain
+            if domain == 'linkedin.com' or domain.endswith('.linkedin.com'):
+                return 'linkedin'
+            elif domain == 'github.com' or domain.endswith('.github.com'):
+                return 'github'
+            elif domain == 'twitter.com' or domain.endswith('.twitter.com') or domain == 'x.com' or domain.endswith('.x.com'):
+                return 'twitter'
+            elif domain == 'stackoverflow.com' or domain.endswith('.stackoverflow.com'):
+                return 'stackoverflow'
+            elif domain == 'medium.com' or domain.endswith('.medium.com'):
+                return 'medium'
+            elif domain == 'facebook.com' or domain.endswith('.facebook.com'):
+                return 'facebook'
+            elif domain == 'instagram.com' or domain.endswith('.instagram.com'):
+                return 'instagram'
+        except Exception:
+            # Fall back to returning None if parsing fails
+            pass
         
         return None
     
