@@ -39,6 +39,8 @@ export default function Home() {
       setIsUploading(true);
       setError(null);
       
+      // Upload documents
+      const uploadResponse = await candidatesApi.uploadDocuments(cvFile, coverLetterFile, selectedJdId || undefined);
       // Upload documents (with optional job description)
       const uploadResponse = await candidatesApi.uploadDocuments(
         cvFile, 
