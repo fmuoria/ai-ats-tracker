@@ -14,11 +14,108 @@ class AIAnalyzer:
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-1.5-flash')
     
-    def analyze_cv(self, cv_text: str) -> Dict:
+    def analyze_resume_with_gemini(self, resume_text: str, job_text: Optional[str] = None) -> Dict:
         """
-        Analyze CV content and generate score out of 60 points
+        Analyze resume with Gemini AI, optionally considering job description.
+        
+        Args:
+            resume_text: Resume/CV text
+            job_text: Optional job description text for job-aware analysis
+            
+        Returns:
+            Dictionary with strengths, gaps, recommended_questions, and model_fit_score
         """
-        prompt = f"""Analyze the following CV and provide a detailed evaluation. Score it out of 60 points based on:
+        if job_text:
+            prompt = f"""Analyze the following resume in the context of this job description. Provide a comprehensive evaluation.
+
+Job Description:
+{job_text[:3000]}
+
+Resume:
+{resume_text[:4000]}
+
+Provide your response in the following JSON format:
+{{
+    "strengths": [<list of key strengths relevant to the job>],
+    "gaps": [<list of gaps or areas for improvement>],
+    "recommended_questions": [<interview questions to ask based on resume and job>],
+    "model_fit_score": <score from 0-100 indicating how well candidate fits the job>,
+    "key_match_points": [<specific points where resume aligns with job requirements>],
+    "summary": "<brief overall assessment>"
+}}"""
+        else:
+            prompt = f"""Analyze the following resume and provide a comprehensive evaluation.
+
+Resume:
+{resume_text[:4000]}
+
+Provide your response in the following JSON format:
+{{
+    "strengths": [<list of key strengths>],
+    "gaps": [<list of areas for improvement>],
+    "recommended_questions": [<suggested interview questions>],
+    "model_fit_score": <score from 0-100 indicating overall quality>,
+    "summary": "<brief overall assessment>"
+}}"""
+        
+        try:
+            system_prompt = "You are an expert HR recruiter and career advisor. Provide objective, constructive feedback."
+            full_prompt = f"{system_prompt}\n\n{prompt}\n\nProvide your response as a valid JSON object."
+            
+            response = self.model.generate_content(full_prompt)
+            
+            if not response.text:
+                raise ValueError("Gemini API returned empty response")
+            
+            # Clean up response text (remove markdown code blocks if present)
+            response_text = response.text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.startswith('```'):
+                response_text = response_text[3:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            response_text = response_text.strip()
+            
+            result = json.loads(response_text)
+            return result
+        except json.JSONDecodeError as e:
+            print(f"Error parsing Gemini response as JSON: {e}")
+            print(f"Response was: {response.text if 'response' in locals() else 'No response'}")
+            return {
+                "strengths": ["Unable to parse AI response"],
+                "gaps": ["Analysis parsing error occurred"],
+                "recommended_questions": ["What are your key qualifications for this role?"],
+                "model_fit_score": 50,
+                "summary": "Error occurred during analysis"
+            }
+        except Exception as e:
+            print(f"Error in Gemini analysis: {str(e)}")
+            return {
+                "strengths": ["Unable to complete AI analysis"],
+                "gaps": ["Analysis error occurred"],
+                "recommended_questions": ["Tell me about your experience"],
+                "model_fit_score": 50,
+                "summary": f"Error: {str(e)}"
+            }
+    
+    def analyze_cv(self, cv_text: str, job_text: Optional[str] = None) -> Dict:
+        """
+        Analyze CV content and generate score out of 60 points.
+        If job_text is provided, scoring considers job relevance.
+        """
+        job_context = ""
+        if job_text:
+            job_context = f"""
+Job Description Context:
+{job_text[:2000]}
+
+Consider the above job requirements when evaluating the CV.
+"""
+        
+        prompt = f"""{job_context}
+
+Analyze the following CV and provide a detailed evaluation. Score it out of 60 points based on:
 - Relevant work experience (20 points)
 - Skills match and technical expertise (15 points)
 - Education qualifications (10 points)
