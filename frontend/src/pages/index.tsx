@@ -39,13 +39,17 @@ export default function Home() {
       setIsUploading(true);
       setError(null);
       
-      // Upload documents
-      const uploadResponse = await candidatesApi.uploadDocuments(cvFile, coverLetterFile);
+      // Upload documents (with optional job description)
+      const uploadResponse = await candidatesApi.uploadDocuments(
+        cvFile, 
+        coverLetterFile,
+        selectedJdId || undefined
+      );
       const candidateId = uploadResponse.candidate_id;
       
-      // Start analysis (with optional job description)
+      // Start analysis
       setIsAnalyzing(true);
-      await candidatesApi.analyzeCandidate(candidateId, selectedJdId || undefined);
+      await candidatesApi.analyzeCandidate(candidateId);
       
       // Reload candidates
       await loadCandidates();
