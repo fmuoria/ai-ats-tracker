@@ -6,7 +6,7 @@ FastAPI-based backend for the AI-Powered Applicant Tracking System.
 
 - RESTful API with FastAPI
 - SQLite database with SQLAlchemy ORM
-- OpenAI integration for AI-powered analysis
+- Google Gemini integration for AI-powered analysis
 - Document parsing (PDF, DOCX, TXT)
 - Background checking capabilities
 - Automatic API documentation
@@ -39,7 +39,7 @@ pip install -r requirements.txt
 Create a `.env` file in the backend directory:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 DATABASE_URL=sqlite:///./ats_tracker.db
 HOST=0.0.0.0
 PORT=8000
@@ -187,7 +187,7 @@ Handles parsing of different document formats:
 
 ### AI Analyzer
 
-Uses OpenAI GPT models for:
+Uses Google Gemini AI for:
 - CV content analysis and scoring
 - Cover letter evaluation
 - Detailed feedback generation

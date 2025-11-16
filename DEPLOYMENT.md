@@ -14,7 +14,7 @@ This guide covers various deployment options for the AI ATS Tracker application.
 ### Prerequisites
 - Python 3.8+
 - Node.js 18+
-- OpenAI API key
+- Google Gemini API key
 
 ### Setup Steps
 
@@ -41,7 +41,7 @@ npm install
 4. **Environment Configuration**
 ```bash
 # Create .env in backend directory
-echo "OPENAI_API_KEY=your_key_here" > backend/.env
+echo "GEMINI_API_KEY=your_key_here" > backend/.env
 ```
 
 5. **Run Application**
@@ -132,7 +132,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DATABASE_URL=sqlite:///./ats_tracker.db
       - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
     volumes:
@@ -184,7 +184,7 @@ railway add
 
 3. **Set Environment Variables**
 ```bash
-railway variables set OPENAI_API_KEY=your_key_here
+railway variables set GEMINI_API_KEY=your_key_here
 railway variables set DATABASE_URL=sqlite:///./ats_tracker.db
 ```
 
@@ -234,7 +234,7 @@ eb create production
 
 4. **Set Environment Variables**
 ```bash
-eb setenv OPENAI_API_KEY=your_key_here
+eb setenv GEMINI_API_KEY=your_key_here
 ```
 
 5. **Deploy**
@@ -267,7 +267,7 @@ gcloud run deploy ats-backend \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars OPENAI_API_KEY=your_key_here
+  --set-env-vars GEMINI_API_KEY=your_key_here
 ```
 
 #### Frontend on Firebase Hosting
@@ -296,7 +296,7 @@ heroku create ats-tracker-backend
 
 2. **Set Environment Variables**
 ```bash
-heroku config:set OPENAI_API_KEY=your_key_here
+heroku config:set GEMINI_API_KEY=your_key_here
 ```
 
 3. **Create Procfile**
@@ -347,7 +347,7 @@ pip install psycopg2-binary
 
 **Required for Production:**
 ```env
-OPENAI_API_KEY=your_key
+GEMINI_API_KEY=your_key
 DATABASE_URL=postgresql://...
 SECRET_KEY=random_secret_key
 CORS_ORIGINS=https://yourdomain.com
@@ -469,20 +469,21 @@ A       api     backend.server.ip
 
 ### 10. Cost Estimation
 
-**OpenAI API:**
-- GPT-3.5: ~$0.02 per candidate
-- GPT-4: ~$0.20 per candidate
+**Google Gemini API:**
+- Gemini 1.5 Flash: FREE (up to 60 requests/minute)
+- Free tier with generous daily limits
+- No cost for typical ATS usage
 
 **Infrastructure (Monthly):**
-- Small (< 100 candidates/month): $10-30
-- Medium (< 1000 candidates/month): $50-100
-- Large (> 1000 candidates/month): $200+
+- Small (< 100 candidates/month): $5-15
+- Medium (< 1000 candidates/month): $15-30
+- Large (> 1000 candidates/month): $50+
 
 **Breakdown:**
 - Backend hosting: $5-50
 - Frontend hosting: $0-20 (Vercel free tier)
 - Database: $0-30 (depends on size)
-- OpenAI API: variable
+- Gemini API: FREE
 
 ## Deployment Checklist
 
@@ -523,7 +524,7 @@ docker logs backend
 journalctl -u ats-backend
 
 # Verify environment variables
-env | grep OPENAI_API_KEY
+env | grep GEMINI_API_KEY
 ```
 
 **Database connection error:**
@@ -545,14 +546,13 @@ echo $API_URL
 # Ensure frontend URL is in CORS_ORIGINS
 ```
 
-**OpenAI API errors:**
+**Gemini API errors:**
 ```bash
-# Verify API key
-curl https://api.openai.com/v1/models \
-  -H "Authorization: Bearer $OPENAI_API_KEY"
+# Verify API key is set
+echo $GEMINI_API_KEY
 
-# Check quota/billing
-# Visit: https://platform.openai.com/usage
+# Get API key from: https://aistudio.google.com/app/apikey
+# Check usage and quotas in Google AI Studio
 ```
 
 ## Maintenance
