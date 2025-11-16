@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { Users, Upload as UploadIcon } from 'lucide-react';
+import { Users, Upload as UploadIcon, Briefcase } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import CandidateList from '@/components/CandidateList';
 import CandidateDetails from '@/components/CandidateDetails';
+import JobDescriptionManager from '@/components/JobDescriptionManager';
 import { candidatesApi, Candidate } from '@/services/api';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<'upload' | 'dashboard'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'upload' | 'dashboard' | 'jobs'>('dashboard');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [selectedJdId, setSelectedJdId] = useState<number | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -49,6 +51,9 @@ export default function Home() {
         await loadCandidates();
         setIsAnalyzing(false);
       }, 2000);
+      // Start analysis (with optional job description)
+      setIsAnalyzing(true);
+      await candidatesApi.analyzeCandidate(candidateId, selectedJdId || undefined);
       
       // Reload candidates
       await loadCandidates();
@@ -117,6 +122,20 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => {
+                    setActiveTab('jobs');
+                    setSelectedCandidate(null);
+                  }}
+                  className={`px-4 py-2 rounded-lg transition-colors font-medium flex items-center space-x-2 ${
+                    activeTab === 'jobs'
+                      ? 'bg-primary-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Briefcase className="h-4 w-4" />
+                  <span>Job Descriptions</span>
+                </button>
+                <button
+                  onClick={() => {
                     setActiveTab('upload');
                     setSelectedCandidate(null);
                   }}
@@ -153,12 +172,40 @@ export default function Home() {
               candidate={selectedCandidate}
               onBack={() => setSelectedCandidate(null)}
             />
+          ) : activeTab === 'jobs' ? (
+            <div className="max-w-4xl mx-auto">
+              <JobDescriptionManager 
+                selectedJdId={selectedJdId}
+                onSelectJd={setSelectedJdId}
+                onJobDescriptionCreated={() => {
+                  // Optionally refresh or do something
+                }}
+              />
+              {selectedJdId && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Selected Job Description ID: {selectedJdId}</strong>
+                    <br />
+                    New candidates will be analyzed against this job description.
+                  </p>
+                </div>
+              )}
+            </div>
           ) : activeTab === 'upload' ? (
             <div className="max-w-2xl mx-auto">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-6">
                   Upload Candidate Documents
                 </h2>
+                {selectedJdId && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-800">
+                      <strong>Job Description Selected:</strong> ID {selectedJdId}
+                      <br />
+                      <span className="text-xs">This candidate will be analyzed against the selected job description.</span>
+                    </p>
+                  </div>
+                )}
                 <FileUpload onUpload={handleUpload} isUploading={isUploading || isAnalyzing} />
               </div>
             </div>

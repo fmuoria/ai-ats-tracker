@@ -55,6 +55,10 @@ export default function CandidateDetails({ candidate, onBack }: CandidateDetails
                 <span className="text-xs text-gray-500 ml-1">(60%)</span>
               </div>
             )}
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {candidate.final_score ? 'Final Score (Job-Aware)' : 'Overall Score'}
+          </h3>
+          <div className="flex flex-wrap justify-center gap-4 text-sm">
             <div>
               <span className="text-gray-600">CV Quality:</span>
               <span className="ml-2 font-semibold">{candidate.cv_score?.toFixed(0) || 0}/60</span>
@@ -67,6 +71,14 @@ export default function CandidateDetails({ candidate, onBack }: CandidateDetails
                 <span className="text-gray-600">Cover Letter:</span>
                 <span className="ml-2 font-semibold">
                   {candidate.cover_letter_score?.toFixed(0) || 0}/40
+                </span>
+              </div>
+            )}
+            {candidate.jd_match_score !== null && candidate.jd_match_score !== undefined && (
+              <div>
+                <span className="text-gray-600">JD Match:</span>
+                <span className="ml-2 font-semibold">
+                  {candidate.jd_match_score?.toFixed(0) || 0}%
                 </span>
               </div>
             )}
@@ -93,11 +105,28 @@ export default function CandidateDetails({ candidate, onBack }: CandidateDetails
                   <CheckCircle className="h-4 w-4 mr-1" />
                   Matched Skills ({candidate.matched_skills.length})
                 </h4>
+      {/* Job Match Section */}
+      {candidate.jd_id && (candidate.matched_skills || candidate.missing_skills) && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2" />
+            Job Description Match Analysis
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Matched Skills */}
+            {candidate.matched_skills && candidate.matched_skills.length > 0 && (
+              <div>
+                <div className="flex items-center mb-3">
+                  <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                  <h4 className="font-semibold text-green-700">Matched Skills</h4>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {candidate.matched_skills.map((skill, idx) => (
                     <span
                       key={idx}
                       className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm border border-green-200"
+                      className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
                     >
                       {skill}
                     </span>
@@ -111,11 +140,20 @@ export default function CandidateDetails({ candidate, onBack }: CandidateDetails
                   <AlertCircle className="h-4 w-4 mr-1" />
                   Missing Skills ({candidate.missing_skills.length})
                 </h4>
+
+            {/* Missing Skills */}
+            {candidate.missing_skills && candidate.missing_skills.length > 0 && (
+              <div>
+                <div className="flex items-center mb-3">
+                  <AlertCircle className="h-5 w-5 text-orange-600 mr-2" />
+                  <h4 className="font-semibold text-orange-700">Missing Skills</h4>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {candidate.missing_skills.map((skill, idx) => (
                     <span
                       key={idx}
                       className="px-3 py-1 bg-orange-50 text-orange-700 rounded-full text-sm border border-orange-200"
+                      className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
                     >
                       {skill}
                     </span>
@@ -124,6 +162,18 @@ export default function CandidateDetails({ candidate, onBack }: CandidateDetails
               </div>
             )}
           </div>
+          
+          {candidate.jd_match_score !== null && candidate.jd_match_score !== undefined && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Semantic Similarity Score:</strong> {candidate.jd_match_score.toFixed(1)}%
+                <br />
+                <span className="text-xs text-blue-600">
+                  This score represents how well the candidate's resume semantically matches the job description using AI embeddings.
+                </span>
+              </p>
+            </div>
+          )}
         </div>
       )}
 

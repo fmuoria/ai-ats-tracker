@@ -24,6 +24,20 @@ The system provides comprehensive analysis including:
   - Skills matching analysis
   - Identification of matched and missing skills
 - **Resume Quality Assessment** (using Google Gemini)
+- **Job Description Matching**: Upload job descriptions and match candidates semantically
+- **AI-Powered Scoring**: Intelligent evaluation of candidates out of 100%
+  - CV Analysis (60% weight)
+  - Cover Letter Analysis (40% weight)
+  - Job Description Match Score (semantic similarity)
+  - Final Combined Score (structural + semantic fit)
+- **Skill Matching**: Automatic identification of matched and missing skills
+- **Background Checks**: Online presence and social media verification
+- **Enhanced Social Search**: Automated web search via SerpAPI or manual guidance
+- **Modern Web Interface**: Clean, responsive dashboard for managing candidates
+
+### 📊 Scoring System
+The system provides comprehensive analysis including:
+- **Structural CV Analysis (60 points)**
   - Work experience evaluation
   - Skills assessment
   - Education qualifications review
@@ -32,11 +46,24 @@ The system provides comprehensive analysis including:
 - **Final Score Calculation**
   - With JD: 60% × JD Match Score + 40% × CV Quality Score
   - Without JD: CV Quality Score normalized to 100
+  - Document quality and presentation
+- **Cover Letter Analysis (40 points)**
+  - Writing quality and communication skills
+  - Motivation and company fit assessment
+- **Job Description Matching (NEW)**
+  - Semantic similarity score (0-100%)
+  - Matched skills identification
+  - Missing skills analysis
+  - Final combined score: CV structural (60%) + JD semantic match (40%)
 
 ### 🔍 Background Verification
 - Contact information validation (email, phone)
 - LinkedIn profile verification
 - Online presence search using SerpAPI (optional)
+- **Enhanced Online Presence Search**
+  - Automated web search via SerpAPI (when API key configured)
+  - Manual search guidance (fallback)
+  - Multiple platform checking (LinkedIn, GitHub, Twitter, etc.)
 - Social media presence analysis
 - Automatic fallback to manual verification when API unavailable
 - Work experience verification guidance
@@ -73,6 +100,8 @@ ai-ats-tracker/
 - npm or yarn
 - Google Gemini API key (required)
 - SerpAPI key (optional, for social media search)
+- Google Gemini API key (replaces OpenAI)
+- SerpAPI key (optional, for automated web searches)
 
 ## Installation
 
@@ -134,6 +163,10 @@ SERPAPI_KEY=your_serpapi_key_here  # Optional
 - `EMBEDDING_MODEL`: Embedding model name (defaults to 'all-MiniLM-L6-v2')
 - `SERPAPI_KEY`: SerpAPI key for social media profile search
 - `SOCIAL_SEARCH_ENABLED`: Enable/disable social search (defaults to 'true')
+- `GEMINI_API_KEY`: Your Google Gemini API key for AI-powered analysis (get it from https://makersuite.google.com/app/apikey)
+
+**Optional Environment Variables:**
+- `SERPAPI_KEY` or `SEARCH_API_KEY`: For automated web/social media searches (get it from https://serpapi.com/)
 - `DATABASE_URL`: Database connection string (defaults to SQLite)
 - `CORS_ORIGINS`: Allowed CORS origins (defaults to localhost:3000)
 
@@ -252,6 +285,17 @@ This dual approach ensures both quantitative matching scores and qualitative ins
 - `POST /api/candidates/{id}/match` - Trigger job matching for existing candidate
   - Requires: `job_id` or `job_text`
 - `POST /api/candidates/{id}/analyze` - Legacy: Analyze candidate documents
+### Job Descriptions (NEW)
+
+- `POST /api/job-descriptions/` - Create job description (file or text)
+- `GET /api/job-descriptions/` - List all job descriptions
+- `GET /api/job-descriptions/{id}` - Get job description details
+- `DELETE /api/job-descriptions/{id}` - Delete job description
+
+### Candidates
+
+- `POST /api/candidates/upload` - Upload CV and cover letter
+- `POST /api/candidates/{id}/analyze?jd_id={jd_id}` - Analyze candidate (optionally with job description)
 - `GET /api/candidates/` - List all candidates
 - `GET /api/candidates/{id}` - Get candidate details
 - `DELETE /api/candidates/{id}` - Delete candidate
@@ -306,6 +350,11 @@ npm start
 - **BeautifulSoup4**: Web content extraction
 - **NumPy**: Numerical operations for embeddings
 - **FAISS**: Optional vector similarity search acceleration
+- **Google Gemini API**: AI-powered document analysis
+- **Sentence Transformers**: Local semantic embeddings for job matching
+- **PyPDF2 & python-docx**: Document parsing
+- **SerpAPI**: Automated web and social media search (optional)
+- **BeautifulSoup4**: Web scraping capabilities
 
 ### Frontend
 - **Next.js 14**: React framework with SSR
@@ -396,9 +445,10 @@ Performs validation and provides guidance for:
 
 ### Backend Issues
 
-**Error: "OPENAI_API_KEY environment variable is not set"**
+**Error: "GEMINI_API_KEY environment variable is not set"**
 - Ensure you've created a `.env` file in the backend directory
-- Add your OpenAI API key: `OPENAI_API_KEY=your_key_here`
+- Add your Gemini API key: `GEMINI_API_KEY=your_key_here`
+- Get your key from https://makersuite.google.com/app/apikey
 
 **Error: "Module not found"**
 - Ensure virtual environment is activated
@@ -430,6 +480,13 @@ For issues and questions, please open an issue on GitHub.
 
 ## Roadmap
 
+Completed:
+- [x] Job description upload and matching
+- [x] Semantic similarity scoring with sentence-transformers
+- [x] Combined structural + semantic scoring
+- [x] Automated social/online presence search
+- [x] Enhanced skill matching (matched vs missing)
+
 Future enhancements:
 - [ ] PDF report export functionality
 - [ ] Batch processing of multiple candidates
@@ -439,9 +496,12 @@ Future enhancements:
 - [ ] Integration with job posting platforms
 - [ ] Advanced analytics and reporting
 - [ ] Real-time collaboration features
+- [ ] Background job queue (Celery/Redis) for large-scale processing
 
 ## Acknowledgments
 
-- OpenAI for GPT API
+- Google for Gemini API
+- Sentence Transformers team for semantic embeddings
+- SerpAPI for web search capabilities
 - FastAPI and Next.js communities
 - All open-source contributors
