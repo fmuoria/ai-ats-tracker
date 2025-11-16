@@ -1,12 +1,15 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-from ..models import get_db, Candidate
+from ..models import get_db, Candidate, JobDescription
 from ..services import DocumentParser, AIAnalyzer, BackgroundChecker
+from ..services.embedding_service import get_embedding_service
+from ..services.ai_service import get_ai_service
+from ..services.social_search import get_social_search_service
 
 router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 
@@ -14,14 +17,113 @@ router = APIRouter(prefix="/api/candidates", tags=["candidates"])
 executor = ThreadPoolExecutor(max_workers=3)
 
 
+def process_candidate_analysis(candidate_id: int, job_id: Optional[int], job_text: Optional[str]):
+    """
+    Background task to analyze candidate with job matching
+    """
+    from ..models.database import SessionLocal
+    db = SessionLocal()
+    
+    try:
+        candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+        if not candidate:
+            return
+        
+        # Update status
+        candidate.processing_status = "analyzing"
+        db.commit()
+        
+        # Get services
+        embedding_service = get_embedding_service()
+        ai_service = get_ai_service()
+        social_search_service = get_social_search_service()
+        
+        # Generate resume embedding
+        resume_text = candidate.cv_text or ""
+        resume_embedding = embedding_service.embed_text(resume_text)
+        candidate.resume_embedding = resume_embedding
+        
+        # Get job description if provided
+        job_description_text = job_text
+        job_embedding = None
+        
+        if job_id:
+            job = db.query(JobDescription).filter(JobDescription.id == job_id).first()
+            if job:
+                candidate.jd_id = job_id
+                job_description_text = job.description_text
+                job_embedding = job.embedding
+        
+        # Compute JD match score if job provided
+        if job_embedding:
+            jd_match_score = embedding_service.compute_match_score(resume_embedding, job_embedding)
+            candidate.jd_match_score = jd_match_score
+        
+        # Run AI analysis with Gemini
+        ai_analysis = ai_service.analyze_resume_with_gemini(resume_text, job_description_text)
+        
+        # Extract skills
+        candidate.matched_skills = ai_analysis.get("matched_skills", [])
+        candidate.missing_skills = ai_analysis.get("missing_skills", [])
+        
+        # Store AI analysis results
+        candidate.cv_analysis = {
+            "strengths": ai_analysis.get("strengths", []),
+            "gaps": ai_analysis.get("gaps", []),
+            "recommended_questions": ai_analysis.get("recommended_questions", []),
+            "summary": ai_analysis.get("summary", ""),
+            "model_fit_score": ai_analysis.get("model_fit_score", 50)
+        }
+        
+        # Calculate cv_score from model_fit_score (normalize to 60)
+        model_fit = ai_analysis.get("model_fit_score", 50)
+        candidate.cv_score = (model_fit / 100) * 60
+        
+        # Perform social search
+        if candidate.name:
+            social_results = social_search_service.search_public_profiles(
+                candidate.name,
+                candidate.email
+            )
+            candidate.social_media_presence = social_results
+        
+        # Calculate final score
+        if candidate.jd_match_score is not None:
+            # Weighted: 60% JD match + 40% CV structure score
+            final_score = (0.6 * candidate.jd_match_score) + (0.4 * candidate.cv_score)
+            candidate.final_score = round(final_score, 2)
+        else:
+            # No JD match, use CV score normalized to 100
+            candidate.final_score = round((candidate.cv_score / 60) * 100, 2)
+        
+        # Update overall score for backward compatibility
+        candidate.overall_score = candidate.final_score
+        
+        # Complete
+        candidate.processing_status = "completed"
+        db.commit()
+        
+    except Exception as e:
+        print(f"Error processing candidate {candidate_id}: {str(e)}")
+        if candidate:
+            candidate.processing_status = "error"
+            db.commit()
+    finally:
+        db.close()
+
+
 @router.post("/upload")
 async def upload_candidate_documents(
+    background_tasks: BackgroundTasks,
     cv_file: UploadFile = File(...),
     cover_letter_file: Optional[UploadFile] = File(None),
+    job_id: Optional[int] = Form(None),
+    job_text: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """
     Upload CV and optionally cover letter for a candidate
+    Supports optional job_id or ad-hoc job_text for matching
     """
     # Validate file types
     allowed_extensions = ['pdf', 'docx', 'txt']
@@ -61,12 +163,20 @@ async def upload_candidate_documents(
             cover_letter_filename=cover_letter_file.filename if cover_letter_file else None,
             cover_letter_text=cover_letter_text,
             skills=candidate_info.get('skills', []),
-            processing_status="pending"
+            processing_status="pending_analysis"
         )
         
         db.add(candidate)
         db.commit()
         db.refresh(candidate)
+        
+        # Schedule background analysis
+        background_tasks.add_task(
+            process_candidate_analysis,
+            candidate.id,
+            job_id,
+            job_text
+        )
         
         return {
             "message": "Candidate documents uploaded successfully",
@@ -256,6 +366,40 @@ async def get_candidate_details(candidate_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=404, detail="Candidate not found")
     
     return candidate.to_dict()
+
+
+@router.post("/{candidate_id}/match")
+async def match_candidate_to_job(
+    candidate_id: int,
+    background_tasks: BackgroundTasks,
+    job_id: Optional[int] = Form(None),
+    job_text: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Trigger job matching for an existing candidate
+    """
+    candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
+    
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    
+    if not job_id and not job_text:
+        raise HTTPException(status_code=400, detail="Either job_id or job_text must be provided")
+    
+    # Schedule background analysis
+    background_tasks.add_task(
+        process_candidate_analysis,
+        candidate_id,
+        job_id,
+        job_text
+    )
+    
+    return {
+        "message": "Job matching started",
+        "candidate_id": candidate_id,
+        "status": "processing"
+    }
 
 
 @router.delete("/{candidate_id}")

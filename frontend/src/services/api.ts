@@ -9,12 +9,24 @@ const api = axios.create({
   },
 });
 
+export interface JobDescription {
+  id: number;
+  title: string;
+  description_text: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface Candidate {
   id: number;
   name: string;
   email: string;
   phone?: string;
   linkedin_url?: string;
+  jd_id?: number;
+  jd_match_score?: number;
+  matched_skills?: string[];
+  missing_skills?: string[];
   overall_score?: number;
   cv_score?: number;
   cover_letter_score?: number;
@@ -32,6 +44,30 @@ export interface Candidate {
   work_verification?: any;
 }
 
+export const jobsApi = {
+  createJob: async (title: string, description: string) => {
+    const response = await api.post('/api/jobs/', {
+      title,
+      description_text: description,
+    });
+    return response.data;
+  },
+
+  listJobs: async () => {
+    const response = await api.get('/api/jobs/');
+    return response.data;
+  },
+
+  getJob: async (jobId: number) => {
+    const response = await api.get(`/api/jobs/${jobId}`);
+    return response.data;
+  },
+
+  deleteJob: async (jobId: number) => {
+    const response = await api.delete(`/api/jobs/${jobId}`);
+    return response.data;
+  },
+};
 export interface JobDescription {
   id: number;
   title: string;
@@ -40,11 +76,22 @@ export interface JobDescription {
 }
 
 export const candidatesApi = {
-  uploadDocuments: async (cvFile: File, coverLetterFile?: File) => {
+  uploadDocuments: async (
+    cvFile: File, 
+    coverLetterFile?: File,
+    jobId?: number,
+    jobText?: string
+  ) => {
     const formData = new FormData();
     formData.append('cv_file', cvFile);
     if (coverLetterFile) {
       formData.append('cover_letter_file', coverLetterFile);
+    }
+    if (jobId) {
+      formData.append('job_id', jobId.toString());
+    }
+    if (jobText) {
+      formData.append('job_text', jobText);
     }
 
     const response = await api.post('/api/candidates/upload', formData, {
@@ -55,6 +102,25 @@ export const candidatesApi = {
     return response.data;
   },
 
+  matchCandidateToJob: async (candidateId: number, jobId?: number, jobText?: string) => {
+    const formData = new FormData();
+    if (jobId) {
+      formData.append('job_id', jobId.toString());
+    }
+    if (jobText) {
+      formData.append('job_text', jobText);
+    }
+
+    const response = await api.post(`/api/candidates/${candidateId}/match`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  analyzeCandidate: async (candidateId: number) => {
+    const response = await api.post(`/api/candidates/${candidateId}/analyze`);
   analyzeCandidate: async (candidateId: number, jdId?: number) => {
     const url = jdId 
       ? `/api/candidates/${candidateId}/analyze?jd_id=${jdId}`

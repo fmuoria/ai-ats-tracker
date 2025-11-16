@@ -39,10 +39,20 @@ class Candidate(Base):
     cover_letter_filename = Column(String)
     cover_letter_text = Column(Text)
     
+    # Resume embedding (stored as JSON list)
+    resume_embedding = Column(JSON)
+    
+    # Job Description matching
+    jd_id = Column(Integer, ForeignKey('job_descriptions.id'), nullable=True)
+    jd_match_score = Column(Float)
+    matched_skills = Column(JSON)
+    missing_skills = Column(JSON)
+    
     # Scores
     overall_score = Column(Float)
     cv_score = Column(Float)
     cover_letter_score = Column(Float)
+    final_score = Column(Float)  # Weighted score combining JD match and CV analysis
     
     # Job Description Matching
     jd_id = Column(Integer, ForeignKey('job_descriptions.id'), nullable=True)
@@ -78,6 +88,10 @@ class Candidate(Base):
             "linkedin_url": self.linkedin_url,
             "cv_filename": self.cv_filename,
             "cover_letter_filename": self.cover_letter_filename,
+            "jd_id": self.jd_id,
+            "jd_match_score": self.jd_match_score,
+            "matched_skills": self.matched_skills,
+            "missing_skills": self.missing_skills,
             "overall_score": self.overall_score,
             "cv_score": self.cv_score,
             "cover_letter_score": self.cover_letter_score,

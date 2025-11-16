@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 import os
 
 from .models import init_db
+from .api import candidates_router, jobs_router
+from .utils import run_migrations
 from .api import candidates_router, job_descriptions_router
 
 # Load environment variables
@@ -29,6 +31,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(candidates_router)
+app.include_router(jobs_router)
 app.include_router(job_descriptions_router)
 
 
@@ -37,6 +40,8 @@ async def startup_event():
     """Initialize database on startup"""
     init_db()
     print("Database initialized successfully")
+    run_migrations()
+    print("Database migrations completed")
 
 
 @app.get("/")

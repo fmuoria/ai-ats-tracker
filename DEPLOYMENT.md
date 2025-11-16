@@ -14,7 +14,8 @@ This guide covers various deployment options for the AI ATS Tracker application.
 ### Prerequisites
 - Python 3.8+
 - Node.js 18+
-- Google Gemini API key
+- Google Gemini API key (required)
+- SerpAPI key (optional, for social search)
 
 ### Setup Steps
 
@@ -32,6 +33,8 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+Note: On first run, sentence-transformers will download the embedding model (~90MB). This is cached for future use.
+
 3. **Frontend Setup**
 ```bash
 cd ../frontend
@@ -41,7 +44,14 @@ npm install
 4. **Environment Configuration**
 ```bash
 # Create .env in backend directory
-echo "GEMINI_API_KEY=your_key_here" > backend/.env
+cat > backend/.env << EOF
+GEMINI_API_KEY=your_gemini_key_here
+SERPAPI_KEY=your_serpapi_key_here  # Optional
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+SOCIAL_SEARCH_ENABLED=true
+DATABASE_URL=sqlite:///./ats_tracker.db
+CORS_ORIGINS=http://localhost:3000
+EOF
 ```
 
 5. **Run Application**
@@ -133,10 +143,14 @@ services:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SERPAPI_KEY=${SERPAPI_KEY}  # Optional
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - SOCIAL_SEARCH_ENABLED=true
       - DATABASE_URL=sqlite:///./ats_tracker.db
       - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
     volumes:
       - ./backend/ats_tracker.db:/app/ats_tracker.db
+      - ./backend/.cache:/root/.cache  # Cache for embedding models
     restart: unless-stopped
 
   frontend:
@@ -185,8 +199,16 @@ railway add
 3. **Set Environment Variables**
 ```bash
 railway variables set GEMINI_API_KEY=your_key_here
+railway variables set SERPAPI_KEY=your_serpapi_key_here  # Optional
+railway variables set EMBEDDING_MODEL=all-MiniLM-L6-v2
+railway variables set SOCIAL_SEARCH_ENABLED=true
 railway variables set DATABASE_URL=sqlite:///./ats_tracker.db
 ```
+
+**Important Notes:**
+- First deployment will download the embedding model (~90MB), which may take a few minutes
+- Ensure sufficient disk space for model cache
+- Consider using a persistent volume for the model cache to avoid re-downloading on restarts
 
 4. **Deploy**
 ```bash
