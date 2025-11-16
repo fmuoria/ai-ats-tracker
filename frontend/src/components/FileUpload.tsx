@@ -1,15 +1,33 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, File, X } from 'lucide-react';
+import { Upload, File, X, Briefcase } from 'lucide-react';
+import { jobsApi, JobDescription } from '@/services/api';
 
 interface FileUploadProps {
-  onUpload: (cvFile: File, coverLetterFile?: File) => void;
+  onUpload: (cvFile: File, coverLetterFile?: File, jobId?: number, jobText?: string) => void;
   isUploading: boolean;
 }
 
 export default function FileUpload({ onUpload, isUploading }: FileUploadProps) {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [coverLetterFile, setCoverLetterFile] = useState<File | null>(null);
+  const [jobs, setJobs] = useState<JobDescription[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState<number | undefined>(undefined);
+  const [adHocJobText, setAdHocJobText] = useState<string>('');
+  const [useAdHocJob, setUseAdHocJob] = useState<boolean>(false);
+
+  useEffect(() => {
+    loadJobs();
+  }, []);
+
+  const loadJobs = async () => {
+    try {
+      const data = await jobsApi.listJobs();
+      setJobs(data);
+    } catch (err) {
+      console.error('Error loading jobs:', err);
+    }
+  };
 
   const onCvDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -47,7 +65,9 @@ export default function FileUpload({ onUpload, isUploading }: FileUploadProps) {
 
   const handleSubmit = () => {
     if (cvFile) {
-      onUpload(cvFile, coverLetterFile || undefined);
+      const jobId = useAdHocJob ? undefined : selectedJobId;
+      const jobText = useAdHocJob && adHocJobText.trim() ? adHocJobText : undefined;
+      onUpload(cvFile, coverLetterFile || undefined, jobId, jobText);
     }
   };
 
@@ -129,6 +149,74 @@ export default function FileUpload({ onUpload, isUploading }: FileUploadProps) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Job Selection */}
+      <div className="border-t pt-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Job Description for Matching (Optional)
+        </label>
+        
+        <div className="space-y-4">
+          {/* Job Dropdown */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <input
+                type="radio"
+                id="use-existing-job"
+                checked={!useAdHocJob}
+                onChange={() => setUseAdHocJob(false)}
+                disabled={isUploading}
+                className="h-4 w-4 text-primary-600"
+              />
+              <label htmlFor="use-existing-job" className="text-sm text-gray-700">
+                Select from existing jobs
+              </label>
+            </div>
+            <select
+              value={selectedJobId || ''}
+              onChange={(e) => setSelectedJobId(e.target.value ? Number(e.target.value) : undefined)}
+              disabled={useAdHocJob || isUploading}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">-- No job selected --</option>
+              {jobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Ad-hoc Job Text */}
+          <div>
+            <div className="flex items-center space-x-2 mb-2">
+              <input
+                type="radio"
+                id="use-adhoc-job"
+                checked={useAdHocJob}
+                onChange={() => setUseAdHocJob(true)}
+                disabled={isUploading}
+                className="h-4 w-4 text-primary-600"
+              />
+              <label htmlFor="use-adhoc-job" className="text-sm text-gray-700">
+                Paste job description
+              </label>
+            </div>
+            <textarea
+              value={adHocJobText}
+              onChange={(e) => setAdHocJobText(e.target.value)}
+              disabled={!useAdHocJob || isUploading}
+              placeholder="Paste job description text here for one-time matching..."
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed resize-vertical"
+            />
+          </div>
+        </div>
+
+        <p className="mt-2 text-xs text-gray-500">
+          Selecting a job will compute matching scores and identify skills gaps
+        </p>
       </div>
 
       <button

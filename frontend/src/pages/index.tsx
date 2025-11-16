@@ -32,18 +32,23 @@ export default function Home() {
     }
   };
 
-  const handleUpload = async (cvFile: File, coverLetterFile?: File) => {
+  const handleUpload = async (cvFile: File, coverLetterFile?: File, jobId?: number, jobText?: string) => {
     try {
       setIsUploading(true);
       setError(null);
       
-      // Upload documents
-      const uploadResponse = await candidatesApi.uploadDocuments(cvFile, coverLetterFile);
+      // Upload documents with optional job matching
+      const uploadResponse = await candidatesApi.uploadDocuments(cvFile, coverLetterFile, jobId, jobText);
       const candidateId = uploadResponse.candidate_id;
       
-      // Start analysis
+      // Analysis is now done in background, just wait a bit and reload
       setIsAnalyzing(true);
-      await candidatesApi.analyzeCandidate(candidateId);
+      
+      // Wait a moment then reload to show processing status
+      setTimeout(async () => {
+        await loadCandidates();
+        setIsAnalyzing(false);
+      }, 2000);
       
       // Reload candidates
       await loadCandidates();
@@ -51,14 +56,13 @@ export default function Home() {
       // Switch to dashboard
       setActiveTab('dashboard');
       
-      alert('Candidate analyzed successfully!');
+      alert('Candidate uploaded successfully! Analysis is running in the background.');
     } catch (err: any) {
       console.error('Error uploading candidate:', err);
       setError(err.response?.data?.detail || 'Failed to upload and analyze candidate');
       alert('Error: ' + (err.response?.data?.detail || 'Failed to upload and analyze candidate'));
     } finally {
       setIsUploading(false);
-      setIsAnalyzing(false);
     }
   };
 
@@ -104,6 +108,12 @@ export default function Home() {
                   }`}
                 >
                   Dashboard
+                </button>
+                <button
+                  onClick={() => window.location.href = '/jobs'}
+                  className="px-4 py-2 rounded-lg transition-colors font-medium text-gray-600 hover:bg-gray-100"
+                >
+                  Jobs
                 </button>
                 <button
                   onClick={() => {
