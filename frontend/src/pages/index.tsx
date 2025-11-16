@@ -40,12 +40,12 @@ export default function Home() {
       setError(null);
       
       // Upload documents
-      const uploadResponse = await candidatesApi.uploadDocuments(cvFile, coverLetterFile);
+      const uploadResponse = await candidatesApi.uploadDocuments(cvFile, coverLetterFile, selectedJdId || undefined);
       const candidateId = uploadResponse.candidate_id;
       
-      // Start analysis (with optional job description)
+      // Start analysis
       setIsAnalyzing(true);
-      await candidatesApi.analyzeCandidate(candidateId, selectedJdId || undefined);
+      await candidatesApi.analyzeCandidate(candidateId);
       
       // Reload candidates
       await loadCandidates();
