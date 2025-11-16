@@ -18,13 +18,12 @@ export interface Candidate {
   overall_score?: number;
   cv_score?: number;
   cover_letter_score?: number;
-  jd_id?: number;
-  jd_match_score?: number;
-  matched_skills?: string[];
-  missing_skills?: string[];
-  final_score?: number;
   processing_status: string;
   created_at: string;
+  jd_match_score?: number | null;
+  jd_id?: number | null;
+  matched_skills?: Record<string, any> | null;
+  missing_skills?: Record<string, any> | null;
   cv_analysis?: any;
   cover_letter_analysis?: any;
   online_presence?: any;
@@ -32,19 +31,18 @@ export interface Candidate {
   work_verification?: any;
 }
 
-export interface JobDescription {
-  id: number;
-  title: string;
-  description_text: string;
-  created_at: string;
-}
-
 export const candidatesApi = {
-  uploadDocuments: async (cvFile: File, coverLetterFile?: File) => {
+  uploadDocuments: async (cvFile: File, coverLetterFile?: File, jobId?: number, adhocJobText?: string) => {
     const formData = new FormData();
     formData.append('cv_file', cvFile);
     if (coverLetterFile) {
       formData.append('cover_letter_file', coverLetterFile);
+    }
+    if (typeof jobId !== 'undefined' && jobId !== null) {
+      formData.append('job_id', String(jobId));
+    }
+    if (adhocJobText) {
+      formData.append('job_text', adhocJobText);
     }
 
     const response = await api.post('/api/candidates/upload', formData, {
@@ -55,11 +53,8 @@ export const candidatesApi = {
     return response.data;
   },
 
-  analyzeCandidate: async (candidateId: number, jdId?: number) => {
-    const url = jdId 
-      ? `/api/candidates/${candidateId}/analyze?jd_id=${jdId}`
-      : `/api/candidates/${candidateId}/analyze`;
-    const response = await api.post(url);
+  analyzeCandidate: async (candidateId: number) => {
+    const response = await api.post(`/api/candidates/${candidateId}/analyze`);
     return response.data;
   },
 
@@ -77,41 +72,12 @@ export const candidatesApi = {
     const response = await api.delete(`/api/candidates/${candidateId}`);
     return response.data;
   },
-};
 
-export const jobDescriptionsApi = {
-  createJobDescription: async (title: string, descriptionText?: string, descriptionFile?: File) => {
-    const formData = new FormData();
-    formData.append('title', title);
-    
-    if (descriptionFile) {
-      formData.append('description_file', descriptionFile);
-    } else if (descriptionText) {
-      formData.append('description_text', descriptionText);
-    }
-
-    const response = await api.post('/api/job-descriptions/', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  },
-
-  listJobDescriptions: async () => {
-    const response = await api.get('/api/job-descriptions/');
-    return response.data;
-  },
-
-  getJobDescription: async (jdId: number) => {
-    const response = await api.get(`/api/job-descriptions/${jdId}`);
-    return response.data;
-  },
-
-  deleteJobDescription: async (jdId: number) => {
-    const response = await api.delete(`/api/job-descriptions/${jdId}`);
+  triggerMatch: async (candidateId: number, jobId?: number, adhocJobText?: string) => {
+    const payload: any = {};
+    if (typeof jobId !== 'undefined') payload.job_id = jobId;
+    if (adhocJobText) payload.job_text = adhocJobText;
+    const response = await api.post(`/api/candidates/${candidateId}/match`, payload);
     return response.data;
   },
 };
-
-export default api;
