@@ -42,12 +42,14 @@ export default function CandidateDetails({ candidate, onBack }: CandidateDetails
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-50 mb-4">
-            <span className={`text-4xl font-bold ${getScoreColor(candidate.overall_score || 0)}`}>
-              {candidate.overall_score?.toFixed(0) || 0}
+            <span className={`text-4xl font-bold ${getScoreColor(candidate.final_score || candidate.overall_score || 0)}`}>
+              {(candidate.final_score || candidate.overall_score)?.toFixed(0) || 0}
             </span>
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Overall Score</h3>
-          <div className="flex justify-center space-x-6 text-sm">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            {candidate.final_score ? 'Final Score (Job-Aware)' : 'Overall Score'}
+          </h3>
+          <div className="flex flex-wrap justify-center gap-4 text-sm">
             <div>
               <span className="text-gray-600">CV Score:</span>
               <span className="ml-2 font-semibold">{candidate.cv_score?.toFixed(0) || 0}/60</span>
@@ -60,9 +62,81 @@ export default function CandidateDetails({ candidate, onBack }: CandidateDetails
                 </span>
               </div>
             )}
+            {candidate.jd_match_score !== null && candidate.jd_match_score !== undefined && (
+              <div>
+                <span className="text-gray-600">JD Match:</span>
+                <span className="ml-2 font-semibold">
+                  {candidate.jd_match_score?.toFixed(0) || 0}%
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Job Match Section */}
+      {candidate.jd_id && (candidate.matched_skills || candidate.missing_skills) && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2" />
+            Job Description Match Analysis
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Matched Skills */}
+            {candidate.matched_skills && candidate.matched_skills.length > 0 && (
+              <div>
+                <div className="flex items-center mb-3">
+                  <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                  <h4 className="font-semibold text-green-700">Matched Skills</h4>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {candidate.matched_skills.map((skill, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Missing Skills */}
+            {candidate.missing_skills && candidate.missing_skills.length > 0 && (
+              <div>
+                <div className="flex items-center mb-3">
+                  <AlertCircle className="h-5 w-5 text-orange-600 mr-2" />
+                  <h4 className="font-semibold text-orange-700">Missing Skills</h4>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {candidate.missing_skills.map((skill, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {candidate.jd_match_score !== null && candidate.jd_match_score !== undefined && (
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Semantic Similarity Score:</strong> {candidate.jd_match_score.toFixed(1)}%
+                <br />
+                <span className="text-xs text-blue-600">
+                  This score represents how well the candidate's resume semantically matches the job description using AI embeddings.
+                </span>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Candidate Summary */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

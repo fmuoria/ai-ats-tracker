@@ -1,6 +1,27 @@
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, JSON, ForeignKey
 from sqlalchemy.sql import func
 from .database import Base
+
+
+class JobDescription(Base):
+    __tablename__ = "job_descriptions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    description_text = Column(Text)
+    embedding = Column(JSON)  # Stored as JSON array
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    def to_dict(self):
+        """Convert job description to dictionary"""
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description_text": self.description_text,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
 
 
 class Candidate(Base):
@@ -22,6 +43,13 @@ class Candidate(Base):
     overall_score = Column(Float)
     cv_score = Column(Float)
     cover_letter_score = Column(Float)
+    
+    # Job Description Matching
+    jd_id = Column(Integer, ForeignKey('job_descriptions.id'), nullable=True)
+    jd_match_score = Column(Float, nullable=True)  # Semantic similarity score (0-100)
+    matched_skills = Column(JSON, nullable=True)  # Skills that match JD
+    missing_skills = Column(JSON, nullable=True)  # Skills missing from JD
+    final_score = Column(Float, nullable=True)  # Combined score: CV structural + JD match
     
     # Analysis Results (stored as JSON)
     cv_analysis = Column(JSON)
@@ -53,6 +81,11 @@ class Candidate(Base):
             "overall_score": self.overall_score,
             "cv_score": self.cv_score,
             "cover_letter_score": self.cover_letter_score,
+            "jd_id": self.jd_id,
+            "jd_match_score": self.jd_match_score,
+            "matched_skills": self.matched_skills,
+            "missing_skills": self.missing_skills,
+            "final_score": self.final_score,
             "cv_analysis": self.cv_analysis,
             "cover_letter_analysis": self.cover_letter_analysis,
             "work_experience": self.work_experience,

@@ -79,9 +79,14 @@ async def upload_candidate_documents(
 
 
 @router.post("/{candidate_id}/analyze")
-async def analyze_candidate(candidate_id: int, db: Session = Depends(get_db)):
+async def analyze_candidate(
+    candidate_id: int, 
+    jd_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
     """
-    Trigger AI analysis and background check for a candidate
+    Trigger AI analysis and background check for a candidate.
+    If jd_id is provided, performs job-aware analysis with semantic matching.
     """
     candidate = db.query(Candidate).filter(Candidate.id == candidate_id).first()
     
@@ -90,6 +95,17 @@ async def analyze_candidate(candidate_id: int, db: Session = Depends(get_db)):
     
     if candidate.processing_status == "processing":
         raise HTTPException(status_code=400, detail="Candidate is already being processed")
+    
+    # Get job description if provided
+    job_desc = None
+    job_text = None
+    if jd_id:
+        from ..models import JobDescription
+        job_desc = db.query(JobDescription).filter(JobDescription.id == jd_id).first()
+        if not job_desc:
+            raise HTTPException(status_code=404, detail="Job description not found")
+        job_text = job_desc.description_text
+        candidate.jd_id = jd_id
     
     # Update status
     candidate.processing_status = "processing"
@@ -100,8 +116,8 @@ async def analyze_candidate(candidate_id: int, db: Session = Depends(get_db)):
         ai_analyzer = AIAnalyzer()
         background_checker = BackgroundChecker()
         
-        # Analyze CV
-        cv_analysis = ai_analyzer.analyze_cv(candidate.cv_text)
+        # Analyze CV (with job context if available)
+        cv_analysis = ai_analyzer.analyze_cv(candidate.cv_text, job_text)
         candidate.cv_analysis = cv_analysis
         candidate.cv_score = cv_analysis.get('score', 0)
         
@@ -116,7 +132,51 @@ async def analyze_candidate(candidate_id: int, db: Session = Depends(get_db)):
         scores = ai_analyzer.generate_overall_assessment(cv_analysis, cover_letter_analysis)
         candidate.overall_score = scores['overall_score']
         
-        # Perform background check
+        # Compute JD matching if job description provided
+        if job_desc and job_desc.embedding:
+            from ..services import embed_text, compute_similarity_percentage
+            
+            # Compute CV embedding
+            cv_embedding = embed_text(candidate.cv_text)
+            
+            # Compute semantic similarity
+            jd_match_score = compute_similarity_percentage(cv_embedding, job_desc.embedding)
+            candidate.jd_match_score = jd_match_score
+            
+            # Extract matched and missing skills
+            candidate_skills = set(candidate.skills or [])
+            # Use AI to identify JD required skills
+            jd_skills_analysis = ai_analyzer.analyze_resume_with_gemini(
+                job_text, 
+                None  # No resume for JD analysis
+            )
+            
+            # For now, use simple keyword matching for skills
+            # In a more sophisticated version, we'd use NER or AI to extract skills
+            import re
+            jd_lower = job_text.lower()
+            common_skills = ['python', 'java', 'javascript', 'react', 'node', 'sql', 'aws', 
+                           'docker', 'kubernetes', 'git', 'agile', 'scrum', 'leadership',
+                           'communication', 'teamwork', 'problem solving']
+            
+            jd_skills = set()
+            for skill in common_skills:
+                if skill in jd_lower:
+                    jd_skills.add(skill.capitalize())
+            
+            matched_skills = list(candidate_skills.intersection(jd_skills))
+            missing_skills = list(jd_skills - candidate_skills)
+            
+            candidate.matched_skills = matched_skills
+            candidate.missing_skills = missing_skills
+            
+            # Calculate final score: weighted combination of CV structural score and JD match
+            # CV structural score (60%) + JD semantic match (40%)
+            structural_score_normalized = (candidate.cv_score / 60) * 100  # Normalize to 0-100
+            final_score = (structural_score_normalized * 0.6) + (jd_match_score * 0.4)
+            candidate.final_score = round(final_score, 2)
+        
+        # Perform background check with enhanced social search
         candidate_info = {
             'name': candidate.name,
             'email': candidate.email,
@@ -129,6 +189,20 @@ async def analyze_candidate(candidate_id: int, db: Session = Depends(get_db)):
         candidate.online_presence = background_results.get('online_presence')
         candidate.social_media_presence = background_results.get('social_media')
         candidate.work_verification = background_results.get('work_verification')
+        
+        # Enhanced social/online presence search
+        from ..services import SocialSearchService
+        social_search = SocialSearchService()
+        enhanced_presence = social_search.search_online_presence(
+            candidate.name,
+            candidate.email,
+            candidate.linkedin_url
+        )
+        # Merge with existing online presence data
+        if candidate.online_presence:
+            candidate.online_presence['enhanced_search'] = enhanced_presence
+        else:
+            candidate.online_presence = {'enhanced_search': enhanced_presence}
         
         # Update status
         candidate.processing_status = "completed"

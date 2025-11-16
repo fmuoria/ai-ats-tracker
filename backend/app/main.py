@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import os
 
 from .models import init_db
-from .api import candidates_router
+from .api import candidates_router, job_descriptions_router
 
 # Load environment variables
 load_dotenv()
@@ -12,8 +12,8 @@ load_dotenv()
 # Create FastAPI app
 app = FastAPI(
     title="AI ATS Tracker API",
-    description="AI-Powered Applicant Tracking System with comprehensive candidate evaluation",
-    version="1.0.0"
+    description="AI-Powered Applicant Tracking System with comprehensive candidate evaluation and job matching",
+    version="2.0.0"
 )
 
 # Configure CORS
@@ -29,6 +29,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(candidates_router)
+app.include_router(job_descriptions_router)
 
 
 @app.on_event("startup")
